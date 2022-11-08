@@ -2,11 +2,13 @@ const tableName = 'quickThemes'
 
 export default (knex) => {
   return {
-    add: async (leader, caboose, room) => {
+    add: async (leader, leaderPosition, caboose, caboosePosition, room) => {
       return await knex(tableName)
         .insert({
           leader,
+          leaderPosition,
           caboose,
+          caboosePosition,
           room
         })
     },
