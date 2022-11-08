@@ -40,4 +40,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: whatagoodbot/theme-manager:latest,whatagoodbot/theme-manager:3.0.0
+          tags: whatagoodbot/theme-manager:latest,whatagoodbot/theme-manager:3.0.1

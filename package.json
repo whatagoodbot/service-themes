@@ -1,10 +1,11 @@
 {
   "name": "theme-manager",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A bot to interact with users in chat on tt.live",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
+    "debug": "FULLDEBUG=true NODE_ENV=production nodemon -r dotenv/config src/index.js",
     "dev": "NODE_ENV=development nodemon -r dotenv/config src/index.js",
     "prod": "NODE_ENV=production nodemon -r dotenv/config src/index.js",
     "lint": "standard",
@@ -35,9 +36,10 @@
     "standard": "^17.0.0"
   },
   "dependencies": {
+    "@whatagoodbot/mqtt": "^3.0.10",
+    "@whatagoodbot/rpc": "^1.0.12",
     "hot-shots": "^9.2.0",
     "knex": "^2.3.0",
-    "message-broker": "github:whatagoodbot/message-broker#v3.0.0",
     "mysql": "^2.18.1",
     "winston": "^3.8.2",
     "winston-syslog": "^2.6.0"
