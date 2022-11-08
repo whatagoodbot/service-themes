@@ -2,7 +2,7 @@ import { djChange, getCurrentTheme, startQuickThemes, stopCurrentTheme, skipThem
 import { getString } from '../libs/grpc.js'
 
 export default async (payload) => {
-  // Add room restriction for launch - from env vars or DB
+  if (payload.service !== process.env.npm_package_name) return
   if (payload.client === 'goodbot-ttl') {
     const string = await getString('themesNotYet')
     return [{
@@ -12,7 +12,6 @@ export default async (payload) => {
       }
     }]
   }
-  if (payload.service !== process.env.npm_package_name) return
   switch (payload.arguments) {
     case 'start':
       return await startQuickThemes(payload.room.slug, payload.djs)
