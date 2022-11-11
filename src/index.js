@@ -4,6 +4,7 @@ import { logger } from './utils/logging.js'
 import { metrics } from './utils/metrics.js'
 import { performance } from 'perf_hooks'
 import { startServer } from './libs/grpc.js'
+import { delay } from './utils/timing.js'
 
 const topicPrefix = `${process.env.NODE_ENV}/`
 
@@ -59,6 +60,7 @@ broker.client.on('message', async (topic, data) => {
         console.log(validatedResponse.message)
       } else {
         broker.client.publish(`${topicPrefix}${processedResponse.topic}`, JSON.stringify(validatedResponse))
+        await delay(250)
       }
     }
 
