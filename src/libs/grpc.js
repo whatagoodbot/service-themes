@@ -52,3 +52,21 @@ export const getThemeResults = (room, quickTheme) => {
     })
   })
 }
+
+export const getThemeLeaderboard = (room, quickThemeIds) => {
+  return new Promise(resolve => {
+    themeResultsService.getThemeLeaderboard({ room, quickThemeIds }, (error, response) => {
+      if (error) console.log(error)
+      resolve(response)
+    })
+  })
+}
+
+export const getCurrentThemeLeaderboard = (room, quickTheme) => {
+  return new Promise(resolve => {
+    themeResultsService.getCurrentThemeLeaderboard({ room, quickTheme }, (error, response) => {
+      if (error) console.log(error)
+      resolve(response)
+    })
+  })
+}

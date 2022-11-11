@@ -1,6 +1,6 @@
 {
   "name": "theme-manager",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "A bot to interact with users in chat on tt.live",
   "main": "src/index.js",
   "type": "module",
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@whatagoodbot/mqtt": "^3.0.10",
-    "@whatagoodbot/rpc": "^1.0.12",
+    "@whatagoodbot/rpc": "^1.0.13",
     "hot-shots": "^9.2.0",
     "knex": "^2.3.0",
     "mysql": "^2.18.1",
