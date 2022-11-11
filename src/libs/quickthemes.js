@@ -36,9 +36,11 @@ export const get = async (room) => {
   const quickTheme = await quickThemesDb.getCurrent(room)
   if (quickTheme?.id) {
     const quickThemeTracker = await quickThemesTrackerDb.get(quickTheme.id)
+    const previousQuickTheme = await quickThemesTrackerDb.getPrevious(quickTheme.id)
     return {
       quickTheme,
-      quickThemeTracker
+      quickThemeTracker,
+      previousQuickTheme
     }
   }
 }
@@ -192,7 +194,7 @@ export const progressUpdate = async (room, dj) => {
     const caboose = themeInProgress.quickTheme.caboose
     if (dj === leader) {
       if (themeInProgress.quickTheme.start) {
-        const themeResults = await getThemeResults(room, themeInProgress.quickThemeTracker.id)
+        const themeResults = await getThemeResults(room, themeInProgress.previousQuickTheme.id)
         const strings = await getManyStrings(['themeWinnerIntro', 'themeWinnerMid'])
         const winner = await getUser(themeResults.user)
         return [{
