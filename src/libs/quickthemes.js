@@ -1,5 +1,5 @@
 import { themesDb, quickThemesDb, quickThemesTrackerDb } from '../models/index.js'
-import { getString, getManyStrings, getUser, getThemeResults } from '../libs/grpc.js'
+import { getString, getManyStrings, getUser, getThemeResults, getThemeLeaderboard, getCurrentThemeLeaderboard } from '../libs/grpc.js'
 import { logger } from '../utils/logging.js'
 
 const broadcastCurrentThemeDetails = async (currentTheme, nextTheme, leader, caboose, intro) => {
@@ -184,6 +184,76 @@ export const djChange = async (room, djs) => {
       })
     }
   }
+}
+
+export const getLeaderboard = async (room) => {
+  const quickTheme = await quickThemesDb.getCurrent(room)
+  const quickThemeTrackerIds = await quickThemesTrackerDb.getAll(quickTheme.id)
+  const qtIds = quickThemeTrackerIds.map(qt => { return qt.id })
+  const themeResults = await getThemeLeaderboard(room, qtIds)
+  themeResults.themeLeaders = await Promise.all(themeResults.themeLeaders.map(async result => {
+    return {
+      user: await getUser(result.user),
+      score: result.score
+    }
+  }))
+  const positionIcons = [
+    '👑',
+    '2️⃣ ',
+    '3️⃣ ',
+    '4️⃣ ',
+    '5️⃣ '
+  ]
+  const replies = [{
+    topic: 'broadcast',
+    payload: {
+      message: 'Quick Themes top 5 leaderboard'
+    }
+  }]
+  let count = 0
+  themeResults.themeLeaders.forEach(winner => {
+    replies.push({
+      topic: 'broadcast',
+      payload: {
+        message: `${positionIcons[count++]} @${winner.user.name}  ${winner.score}`
+      }
+    })
+  })
+  return replies
+}
+
+export const getCurrentLeaderboard = async (room) => {
+  const themeInProgress = await get(room)
+  const themeResults = await getCurrentThemeLeaderboard(room, themeInProgress.quickThemeTracker.id)
+  themeResults.themeLeaders = await Promise.all(themeResults.themeLeaders.map(async result => {
+    return {
+      user: await getUser(result.user),
+      score: result.score
+    }
+  }))
+  const positionIcons = [
+    '👑',
+    '2️⃣ ',
+    '3️⃣ ',
+    '4️⃣ ',
+    '5️⃣ '
+  ]
+  const replies = [{
+    topic: 'broadcast',
+    payload: {
+      message: 'Current theme leaderboard'
+    }
+  }]
+  let count = 0
+  themeResults.themeLeaders.forEach(winner => {
+    replies.push({
+      topic: 'broadcast',
+      payload: {
+        message: `${positionIcons[count++]} @${winner.user.name}  ${winner.score}`
+      }
+    })
+  })
+  return replies
 }
 
 export const progressUpdate = async (room, dj) => {

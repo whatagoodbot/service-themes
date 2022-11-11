@@ -1,4 +1,4 @@
-import { djChange, getCurrentTheme, startQuickThemes, stopCurrentTheme, skipTheme } from '../libs/quickthemes.js'
+import { djChange, getCurrentTheme, startQuickThemes, stopCurrentTheme, skipTheme, getLeaderboard, getCurrentLeaderboard } from '../libs/quickthemes.js'
 import { getString } from '../libs/grpc.js'
 
 export default async (payload) => {
@@ -23,6 +23,10 @@ export default async (payload) => {
       return djChange(payload.room.slug, payload.djs)
     case 'current':
       return await getCurrentTheme(payload.room.slug)
+    case 'leaderboard':
+      return await getLeaderboard(payload.room.slug)
+    case 'currentleaderboard':
+      return await getCurrentLeaderboard(payload.room.slug)
     default:
       return themesError()
   }
