@@ -188,6 +188,16 @@ export const djChange = async (room, djs) => {
 
 export const getLeaderboard = async (room) => {
   const quickTheme = await quickThemesDb.getCurrent(room)
+  if (!quickTheme) {
+    const string = await getString('themeNone')
+    return [{
+      topic: 'broadcast',
+      payload: {
+        message: string.value
+      }
+    }]
+  }
+
   const quickThemeTrackerIds = await quickThemesTrackerDb.getAll(quickTheme.id)
   const qtIds = quickThemeTrackerIds.map(qt => { return qt.id })
   const themeResults = await getThemeLeaderboard(room, qtIds)
@@ -224,6 +234,15 @@ export const getLeaderboard = async (room) => {
 
 export const getCurrentLeaderboard = async (room) => {
   const themeInProgress = await get(room)
+  if (!themeInProgress) {
+    const string = await getString('themeNone')
+    return [{
+      topic: 'broadcast',
+      payload: {
+        message: string.value
+      }
+    }]
+  }
   const themeResults = await getCurrentThemeLeaderboard(room, themeInProgress.quickThemeTracker.id)
   themeResults.themeLeaders = await Promise.all(themeResults.themeLeaders.map(async result => {
     return {
