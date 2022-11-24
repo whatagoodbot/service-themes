@@ -3,6 +3,7 @@ import broker from '@whatagoodbot/mqtt'
 import controllers from './controllers/mqtt/index.js'
 import { logger, metrics } from '@whatagoodbot/utilities'
 import { startServer } from './libs/grpc.js'
+import { delay } from './utils/timing.js'
 
 const topicPrefix = `${process.env.NODE_ENV}/`
 
@@ -51,6 +52,7 @@ broker.client.on('message', async (fullTopic, data) => {
       if (processedResponse.topic && !process.env.FULLDEBUG) {
         logger.debug({ event: 'Publishing', topic: processedResponse.topic })
         broker.client.publish(`${topicPrefix}${processedResponse.topic}`, JSON.stringify(validatedResponse))
+        await delay(250)
       }
     }
     metrics.trackExecution(functionName, 'mqtt', performance.now() - startTime, true, { topic })
