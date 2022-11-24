@@ -3,7 +3,6 @@ import broker from '@whatagoodbot/mqtt'
 import controllers from './controllers/mqtt/index.js'
 import { logger, metrics } from '@whatagoodbot/utilities'
 import { startServer } from './libs/grpc.js'
-import { delay } from './utils/timing.js'
 
 const topicPrefix = `${process.env.NODE_ENV}/`
 
