@@ -13,7 +13,9 @@ export const up = (knex) => {
       table.timestamp('end')
       table.string('room', 255)
       table.string('leader', 255)
+      table.integer('leaderPosition')
       table.string('caboose', 255)
+      table.integer('caboosePosition')
       table.timestamps(true, true, true)
     })
     .createTable('quickThemesTracker', function (table) {
