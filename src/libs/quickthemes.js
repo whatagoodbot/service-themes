@@ -1,13 +1,16 @@
 import { themesDb, quickThemesDb, quickThemesTrackerDb } from '../models/index.js'
-import { getString, getManyStrings, getUser, getThemeResults, getThemeLeaderboard, getCurrentThemeLeaderboard } from '../libs/grpc.js'
-import { logger } from '../utils/logging.js'
+import { logger, metrics } from '@whatagoodbot/utilities'
+import { clients } from '@whatagoodbot/rpc'
 
 const broadcastCurrentThemeDetails = async (currentTheme, nextTheme, leader, caboose, intro) => {
-  logger.debug('broadcastCurrentThemeDetails')
-  const leaderProfile = await getUser(leader)
-  const cabooseProfile = await getUser(caboose)
-  const strings = await getManyStrings([intro, 'themeCurrent', 'themeOnDeck', 'themeLeader', 'themeCaboose'])
+  const functionName = 'broadcastCurrentThemeDetails'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
+  const leaderProfile = await clients.users.get(leader)
+  const cabooseProfile = await clients.users.get(caboose)
+  const strings = await clients.strings.getMany([intro, 'themeCurrent', 'themeOnDeck', 'themeLeader', 'themeCaboose'])
   const responses = []
+  // TODO add rich text support here
   if (intro) {
     responses.push({
       topic: 'broadcast',
@@ -32,35 +35,37 @@ const broadcastCurrentThemeDetails = async (currentTheme, nextTheme, leader, cab
 }
 
 export const get = async (room) => {
-  logger.debug('get')
+  const functionName = 'get'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   const quickTheme = await quickThemesDb.getCurrent(room)
   if (quickTheme?.id) {
     const quickThemeTracker = await quickThemesTrackerDb.get(quickTheme.id)
-    const previousQuickTheme = await quickThemesTrackerDb.getPrevious(quickTheme.id)
     return {
       quickTheme,
-      quickThemeTracker,
-      previousQuickTheme
+      quickThemeTracker
     }
   }
 }
 
 export const startQuickThemes = async (room, djs) => {
-  logger.debug('startQuickThemes')
+  const functionName = 'startQuickThemes'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   const themeInProgress = await get(room)
   if (themeInProgress) {
-    return broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose, 'themeAlreadyInProgress')
+    return await broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose, 'themeAlreadyInProgress')
   }
 
-  // if (djs.length < 3) {
-  //   const string = await getString('themeNotEnoughPeople')
-  //   return [{
-  //     topic: 'broadcast',
-  //     payload: {
-  //       message: string.value
-  //     }
-  //   }]
-  // }
+  if (djs.length < 3) {
+    const string = await clients.strings.get('themeNotEnoughPeople')
+    return [{
+      topic: 'broadcast',
+      payload: {
+        message: string.value
+      }
+    }]
+  }
   const themes = await themesDb.getAll()
   const currentTheme = themes[Math.floor(Math.random() * themes.length)]
   const nextTheme = themes[Math.floor(Math.random() * themes.length)]
@@ -70,16 +75,18 @@ export const startQuickThemes = async (room, djs) => {
   const themeRecord = await quickThemesDb.add(leader.userId, 1, caboose.userId, 0, room)
   quickThemesTrackerDb.add(themeRecord[0], currentTheme.id, nextTheme.id)
 
-  return broadcastCurrentThemeDetails(currentTheme.name, nextTheme.name, leader.userId, caboose.userId, 'themeStart')
+  return await broadcastCurrentThemeDetails(currentTheme.name, nextTheme.name, leader.userId, caboose.userId, 'themeStart')
 }
 
 export const getCurrentTheme = async (room, intro) => {
-  logger.debug('getCurrentTheme')
+  const functionName = 'getCurrentTheme'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   const themeInProgress = await get(room)
   if (themeInProgress?.quickTheme?.id) {
-    return broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose, intro)
+    return await broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose, intro)
   } else {
-    const string = await getString('themeNone')
+    const string = await clients.strings.get('themeNone')
     return [{
       topic: 'broadcast',
       payload: {
@@ -90,7 +97,9 @@ export const getCurrentTheme = async (room, intro) => {
 }
 
 const stop = async (themeInProgress) => {
-  logger.debug('stop')
+  const functionName = 'stop'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   if (themeInProgress) {
     quickThemesDb.update(themeInProgress.quickTheme.id, { end: new Date() })
     themesDb.update(themeInProgress.quickThemeTracker.currentTheme, { used: new Date() })
@@ -98,11 +107,13 @@ const stop = async (themeInProgress) => {
 }
 
 export const stopCurrentTheme = async (payload) => {
-  logger.debug('stopCurrentTheme')
-  const themeInProgress = await get(payload.room.slug)
+  const functionName = 'stopCurrentTheme'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
+  const themeInProgress = await get(payload.room.id)
   if (themeInProgress) {
     await stop(themeInProgress)
-    const string = await getString('themeEnd')
+    const string = await clients.strings.get('themeFinished')
     return [{
       topic: 'broadcast',
       payload: {
@@ -110,7 +121,7 @@ export const stopCurrentTheme = async (payload) => {
       }
     }]
   } else {
-    const string = await getString('themeNone')
+    const string = await clients.strings.get('themeNone')
     return [{
       topic: 'broadcast',
       payload: {
@@ -121,25 +132,37 @@ export const stopCurrentTheme = async (payload) => {
 }
 
 export const skipTheme = async (payload) => {
-  logger.debug('skipTheme')
-  const themeInProgress = await get(payload.room.slug)
+  const functionName = 'skipTheme'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
+  const themeInProgress = await get(payload.room.id)
   if (themeInProgress) {
     const themes = await themesDb.getAll()
     const currentTheme = themeInProgress.quickThemeTracker.currentTheme
     const currentThemName = themeInProgress.quickThemeTracker.currentThemeName
     const nextTheme = themes[Math.floor(Math.random() * themes.length)]
     quickThemesTrackerDb.add(themeInProgress.quickThemeTracker.quickTheme, currentTheme, nextTheme.id)
-    return broadcastCurrentThemeDetails(currentThemName, nextTheme.name, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose)
+    return await broadcastCurrentThemeDetails(currentThemName, nextTheme.name, themeInProgress.quickTheme.leader, themeInProgress.quickTheme.caboose)
+  } else {
+    const string = await clients.strings.get('themeNone')
+    return [{
+      topic: 'broadcast',
+      payload: {
+        message: string.value
+      }
+    }]
   }
 }
 
 export const djChange = async (room, djs) => {
-  logger.debug('djChange')
+  const functionName = 'djChange'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   const themeInProgress = await get(room)
   if (themeInProgress) {
     if (djs.length < 3) {
       stop(themeInProgress)
-      const string = await getString('themeNotEnoughPeople')
+      const string = await clients.strings.get('themeNotEnoughPeople')
       return [{
         topic: 'broadcast',
         payload: {
@@ -154,7 +177,7 @@ export const djChange = async (room, djs) => {
     if (leaderPosition < 0) {
       // We lost the leader - pick a new one
       hasChanged = true
-      const leaderPosition = themeInProgress.quickTheme.leaderPosition - 1
+      const leaderPosition = themeInProgress.quickTheme.leaderPosition + 1
       leader = djs[leaderPosition].userId
       await quickThemesDb.update(themeInProgress.quickTheme.id, {
         leader,
@@ -166,7 +189,8 @@ export const djChange = async (room, djs) => {
       djs.push(djs.splice(0, 1)[0])
     }
     const caboosePosition = djs.findIndex(dj => dj.userId === caboose)
-    if (caboosePosition !== (djs.length - 1)) {
+    console.log('caboosePosition', caboosePosition, djs.length)
+    if (caboosePosition !== (djs.length)) {
       // Caboose has changed - pick a new one
       hasChanged = true
       const caboosePosition = djs.length - 1
@@ -177,7 +201,7 @@ export const djChange = async (room, djs) => {
       })
     }
     if (hasChanged) {
-      return broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, leader, caboose, 'themeDjChange')
+      return await broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, leader, caboose, 'themeDjChange')
     } else {
       await quickThemesDb.update(themeInProgress.quickTheme.id, {
         leaderPosition
@@ -186,128 +210,46 @@ export const djChange = async (room, djs) => {
   }
 }
 
-export const getLeaderboard = async (room) => {
-  const quickTheme = await quickThemesDb.getCurrent(room)
-  if (!quickTheme) {
-    const string = await getString('themeNone')
-    return [{
-      topic: 'broadcast',
-      payload: {
-        message: string.value
-      }
-    }]
-  }
-
-  const quickThemeTrackerIds = await quickThemesTrackerDb.getAll(quickTheme.id)
-  const qtIds = quickThemeTrackerIds.map(qt => { return qt.id })
-  const themeResults = await getThemeLeaderboard(room, qtIds)
-  themeResults.themeLeaders = await Promise.all(themeResults.themeLeaders.map(async result => {
-    return {
-      user: await getUser(result.user),
-      score: result.score
-    }
-  }))
-  const positionIcons = [
-    '👑',
-    '2️⃣ ',
-    '3️⃣ ',
-    '4️⃣ ',
-    '5️⃣ '
-  ]
-  const replies = [{
-    topic: 'broadcast',
-    payload: {
-      message: 'Quick Themes top 5 leaderboard'
-    }
-  }]
-  let count = 0
-  themeResults.themeLeaders.forEach(winner => {
-    replies.push({
-      topic: 'broadcast',
-      payload: {
-        message: `${positionIcons[count++]} @${winner.user.name}  ${winner.score}`
-      }
-    })
-  })
-  return replies
-}
-
-export const getCurrentLeaderboard = async (room) => {
-  const themeInProgress = await get(room)
-  if (!themeInProgress) {
-    const string = await getString('themeNone')
-    return [{
-      topic: 'broadcast',
-      payload: {
-        message: string.value
-      }
-    }]
-  }
-  const themeResults = await getCurrentThemeLeaderboard(room, themeInProgress.quickThemeTracker.id)
-  themeResults.themeLeaders = await Promise.all(themeResults.themeLeaders.map(async result => {
-    return {
-      user: await getUser(result.user),
-      score: result.score
-    }
-  }))
-  const positionIcons = [
-    '👑',
-    '2️⃣ ',
-    '3️⃣ ',
-    '4️⃣ ',
-    '5️⃣ '
-  ]
-  const replies = [{
-    topic: 'broadcast',
-    payload: {
-      message: 'Current theme leaderboard'
-    }
-  }]
-  let count = 0
-  themeResults.themeLeaders.forEach(winner => {
-    replies.push({
-      topic: 'broadcast',
-      payload: {
-        message: `${positionIcons[count++]} @${winner.user.name}  ${winner.score}`
-      }
-    })
-  })
-  return replies
-}
-
 export const progressUpdate = async (room, dj) => {
-  logger.debug('progressUpdate')
+  const functionName = 'progressUpdate'
+  logger.debug({ event: functionName })
+  metrics.count(functionName)
   const themeInProgress = await get(room)
   if (themeInProgress) {
     const leader = themeInProgress.quickTheme.leader
     const caboose = themeInProgress.quickTheme.caboose
     if (dj === leader) {
       if (themeInProgress.quickTheme.start) {
-        const themeResults = await getThemeResults(room, themeInProgress.previousQuickTheme.id)
-        const strings = await getManyStrings(['themeWinnerIntro', 'themeWinnerMid'])
-        const winner = await getUser(themeResults.user)
+        const themeResults = await clients.statistics.getThemeWinner(room, themeInProgress.quickThemeTracker.id)
+        const strings = await clients.strings.getMany(['themeWinnerIntro', 'themeWinnerMid'])
+        // Switch to next theme
+        themesDb.update(themeInProgress.quickThemeTracker.currentTheme, { used: new Date() })
+        const themes = await themesDb.getAll()
+        const themeOnDeck = themes[Math.floor(Math.random() * themes.length)]
+        quickThemesTrackerDb.add(themeInProgress.quickTheme.id, themeInProgress.quickThemeTracker.nextTheme, themeOnDeck.id, themeInProgress.quickThemeTracker.currentTheme)
+        console.log()
         return [{
           topic: 'broadcast',
           payload: {
-            message: `${strings.themeWinnerIntro} ${themeResults.score} ${strings.themeWinnerMid} @${winner.name}`
+            message: `${strings.themeWinnerIntro} @${themeResults.user.name} ${strings.themeWinnerMid} ${themeResults.score}`
           }
-        }]
+        }
+        ]
       } else {
         await quickThemesDb.update(themeInProgress.quickTheme.id, { start: new Date() })
-        return broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, leader, caboose, 'themeBegun')
+        return await broadcastCurrentThemeDetails(themeInProgress.quickThemeTracker.currentThemeName, themeInProgress.quickThemeTracker.nextThemeName, leader, caboose, 'themeBegun')
       }
     }
     if (dj === caboose) {
-      themesDb.update(themeInProgress.quickThemeTracker.currentTheme, { used: new Date() })
-      const themes = await themesDb.getAll()
-      const themeOnDeck = themes[Math.floor(Math.random() * themes.length)]
-      quickThemesTrackerDb.add(themeInProgress.quickTheme.id, themeInProgress.quickThemeTracker.nextTheme, themeOnDeck.id, themeInProgress.quickThemeTracker.currentTheme)
-      const string = await getString('themeNext')
-      const leaderProfile = await getUser(leader)
+      const [string, leaderProfile] = await Promise.all([
+        clients.strings.get('themeNext'),
+        clients.users.get(leader)
+      ])
+      const message = `${string.value} ${themeInProgress.quickThemeTracker.nextThemeName} - get ready @${leaderProfile.name}`
       return [{
         topic: 'broadcast',
         payload: {
-          message: `${string.value} ${themeInProgress.quickThemeTracker.nextThemeName} - get ready @${leaderProfile.name}`
+          message
         }
       }]
     }

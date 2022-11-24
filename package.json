@@ -1,7 +1,7 @@
 {
-  "name": "theme-manager",
-  "version": "3.0.4",
-  "description": "A bot to interact with users in chat on tt.live",
+  "name": "service-themes",
+  "version": "4.0.0",
+  "description": "",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github-whatagoodbot:whatagoodbot/theme-manager.git"
+    "url": "git@github-whatagoodbot:whatagoodbot/service-themes.git"
   },
   "standard": {
     "env": [
@@ -36,12 +36,10 @@
     "standard": "^17.0.0"
   },
   "dependencies": {
-    "@whatagoodbot/mqtt": "^3.0.10",
-    "@whatagoodbot/rpc": "^1.0.13",
-    "hot-shots": "^9.2.0",
+    "@whatagoodbot/mqtt": "^4.0.0",
+    "@whatagoodbot/rpc": "^2.0.0",
+    "@whatagoodbot/utilities": "^1.0.0",
     "knex": "^2.3.0",
-    "mysql": "^2.18.1",
-    "winston": "^3.8.2",
-    "winston-syslog": "^2.6.0"
+    "mysql": "^2.18.1"
   }
 }
