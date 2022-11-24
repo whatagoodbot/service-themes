@@ -1,7 +1,7 @@
 import { performance } from 'perf_hooks'
 import broker from '@whatagoodbot/mqtt'
 import controllers from './controllers/mqtt/index.js'
-import { logger, metrics } from '@whatagoodbot/utilities'
+import { logger, metrics, delay } from '@whatagoodbot/utilities'
 import { startServer } from './libs/grpc.js'
 
 const topicPrefix = `${process.env.NODE_ENV}/`
