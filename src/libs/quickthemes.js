@@ -189,8 +189,7 @@ export const djChange = async (room, djs) => {
       djs.push(djs.splice(0, 1)[0])
     }
     const caboosePosition = djs.findIndex(dj => dj.userId === caboose)
-    console.log('caboosePosition', caboosePosition, djs.length)
-    if (caboosePosition !== (djs.length)) {
+    if (caboosePosition !== (djs.length-1)) {
       // Caboose has changed - pick a new one
       hasChanged = true
       const caboosePosition = djs.length - 1
@@ -227,7 +226,6 @@ export const progressUpdate = async (room, dj) => {
         const themes = await themesDb.getAll()
         const themeOnDeck = themes[Math.floor(Math.random() * themes.length)]
         quickThemesTrackerDb.add(themeInProgress.quickTheme.id, themeInProgress.quickThemeTracker.nextTheme, themeOnDeck.id, themeInProgress.quickThemeTracker.currentTheme)
-        console.log()
         return [{
           topic: 'broadcast',
           payload: {
