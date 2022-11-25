@@ -189,7 +189,7 @@ export const djChange = async (room, djs) => {
       djs.push(djs.splice(0, 1)[0])
     }
     const caboosePosition = djs.findIndex(dj => dj.userId === caboose)
-    if (caboosePosition !== (djs.length-1)) {
+    if (caboosePosition !== (djs.length - 1)) {
       // Caboose has changed - pick a new one
       hasChanged = true
       const caboosePosition = djs.length - 1
